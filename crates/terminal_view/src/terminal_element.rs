@@ -1,12 +1,6 @@
 use editor::{CursorLayout, HighlightedRange, HighlightedRangeLine};
 use gpui::{
-    AnyElement, App, AvailableSpace, Bounds, ContentMask, Context, DispatchPhase, Element,
-    ElementId, Entity, FocusHandle, Font, FontStyle, FontWeight, GlobalElementId, HighlightStyle,
-    Hitbox, Hsla, InputHandler, InteractiveElement, Interactivity, IntoElement, LayoutId,
-    ModifiersChangedEvent, MouseButton, MouseMoveEvent, Pixels, Point, ShapedLine,
-    StatefulInteractiveElement, StrikethroughStyle, Styled, TextRun, TextStyle, UTF16Selection,
-    UnderlineStyle, WeakEntity, WhiteSpace, Window, WindowTextSystem, div, fill, point, px,
-    relative, size,
+    div, fill, metrics::{clear_all_metrics, print_all_metrics, MetricsRecorder}, point, px, relative, size, AnyElement, App, AvailableSpace, Bounds, ContentMask, Context, DispatchPhase, Element, ElementId, Entity, FocusHandle, Font, FontStyle, FontWeight, GlobalElementId, HighlightStyle, Hitbox, Hsla, InputHandler, InteractiveElement, Interactivity, IntoElement, LayoutId, ModifiersChangedEvent, MouseButton, MouseMoveEvent, Pixels, Point, ShapedLine, StatefulInteractiveElement, StrikethroughStyle, Styled, TextRun, TextStyle, UTF16Selection, UnderlineStyle, WeakEntity, WhiteSpace, Window, WindowTextSystem
 };
 use itertools::Itertools;
 use language::CursorShape;
@@ -28,8 +22,11 @@ use theme::{ActiveTheme, Theme, ThemeSettings};
 use ui::{ParentElement, Tooltip};
 use workspace::Workspace;
 
-use std::mem;
 use std::{fmt::Debug, ops::RangeInclusive, rc::Rc};
+use std::{
+    mem,
+    time::{Duration, Instant},
+};
 
 use crate::{BlockContext, BlockProperties, TerminalView};
 
@@ -761,6 +758,7 @@ impl Element for TerminalElement {
 
                 // then have that representation be converted to the appropriate highlight data structure
 
+                let start = Instant::now();
                 let (cells, rects) = TerminalElement::layout_grid(
                     cells.iter().cloned(),
                     &text_style,
@@ -771,6 +769,10 @@ impl Element for TerminalElement {
                     window,
                     cx,
                 );
+                let elapsed = start.elapsed();
+                if elapsed > Duration::from_millis(10) {
+                    log::error!("TerminalElement loyout took {:?}", elapsed);
+                }
 
                 // Layout cursor. Rectangle is used for IME, so we should lay it out even
                 // if we don't end up showing it.
@@ -954,8 +956,16 @@ impl Element for TerminalElement {
                         }
                     }
 
+                    clear_all_metrics();
+                    let start = Instant::now();
                     for cell in &layout.cells {
+                        let _r = MetricsRecorder::new(0);
                         cell.paint(origin, &layout.dimensions, bounds, window, cx);
+                    }
+                    let elapsed = start.elapsed();
+                    if elapsed > Duration::from_millis(10) {
+                        log::error!("TerminalElement paint took {:?}", elapsed);
+                        print_all_metrics();
                     }
 
                     if self.cursor_visible {

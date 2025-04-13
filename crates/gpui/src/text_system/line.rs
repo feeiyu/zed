@@ -1,7 +1,7 @@
 use crate::{
     App, Bounds, Half, Hsla, LineLayout, Pixels, Point, Result, SharedString, StrikethroughStyle,
-    TextAlign, UnderlineStyle, Window, WrapBoundary, WrappedLineLayout, black, fill, point, px,
-    size,
+    TextAlign, UnderlineStyle, Window, WrapBoundary, WrappedLineLayout, black, fill,
+    metrics::MetricsRecorder, point, px, size,
 };
 use derive_more::{Deref, DerefMut};
 use smallvec::SmallVec;
@@ -377,6 +377,7 @@ fn paint_line(
                             layout.font_size,
                         )?;
                     } else {
+                        let _r = MetricsRecorder::new(3);
                         window.paint_glyph(
                             glyph_origin + baseline_offset,
                             run.font_id,

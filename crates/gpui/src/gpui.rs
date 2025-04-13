@@ -99,6 +99,7 @@ mod text_system;
 mod util;
 mod view;
 mod window;
+pub mod metrics;
 
 /// Do not touch, here be dragons for use by gpui_macros and such.
 #[doc(hidden)]

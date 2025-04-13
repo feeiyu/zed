@@ -13,7 +13,7 @@ use crate::{
     SubscriberSet, Subscription, TaffyLayoutEngine, Task, TextStyle, TextStyleRefinement,
     TransformationMatrix, Underline, UnderlineStyle, WindowAppearance, WindowBackgroundAppearance,
     WindowBounds, WindowControls, WindowDecorations, WindowOptions, WindowParams, WindowTextSystem,
-    point, prelude::*, px, size, transparent_black,
+    metrics::MetricsRecorder, point, prelude::*, px, size, transparent_black,
 };
 use anyhow::{Context as _, Result, anyhow};
 use collections::{FxHashMap, FxHashSet};
@@ -2281,19 +2281,25 @@ impl Window {
     ///
     /// This method should only be called as part of the paint phase of element drawing.
     pub fn paint_layer<R>(&mut self, bounds: Bounds<Pixels>, f: impl FnOnce(&mut Self) -> R) -> R {
-        self.invalidator.debug_assert_paint();
+        let clipped_bounds = {
+            let _r1 = MetricsRecorder::new(1);
+            self.invalidator.debug_assert_paint();
 
-        let scale_factor = self.scale_factor();
-        let content_mask = self.content_mask();
-        let clipped_bounds = bounds.intersect(&content_mask.bounds);
-        if !clipped_bounds.is_empty() {
-            self.next_frame
-                .scene
-                .push_layer(clipped_bounds.scale(scale_factor));
-        }
+            let scale_factor = self.scale_factor();
+            let content_mask = self.content_mask();
+            let clipped_bounds = bounds.intersect(&content_mask.bounds);
+            if !clipped_bounds.is_empty() {
+                self.next_frame
+                    .scene
+                    .push_layer(clipped_bounds.scale(scale_factor));
+            }
+            clipped_bounds
+        };
 
-        let result = f(self);
-
+        let result = {
+            let _r = MetricsRecorder::new(2);
+            f(self)
+        };
         if !clipped_bounds.is_empty() {
             self.next_frame.scene.pop_layer();
         }
@@ -2472,11 +2478,15 @@ impl Window {
             is_emoji: false,
         };
 
-        let raster_bounds = self.text_system().raster_bounds(&params)?;
+        let raster_bounds = {
+            let _r = MetricsRecorder::new(4);
+            self.text_system().raster_bounds(&params)?
+        };
         if !raster_bounds.is_zero() {
             let tile = self
                 .sprite_atlas
                 .get_or_insert_with(&params.clone().into(), &mut || {
+                    let _r = MetricsRecorder::new(5);
                     let (size, bytes) = self.text_system().rasterize_glyph(&params)?;
                     Ok(Some((size, Cow::Owned(bytes))))
                 })?

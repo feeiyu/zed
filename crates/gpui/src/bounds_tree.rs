@@ -1,4 +1,4 @@
-use crate::{Bounds, Half};
+use crate::{metrics::MetricsRecorder, Bounds, Half};
 use std::{
     cmp,
     fmt::Debug,
@@ -26,6 +26,7 @@ where
     }
 
     pub fn insert(&mut self, new_bounds: Bounds<U>) -> u32 {
+        let _r = MetricsRecorder::new(10);
         // If the tree is empty, make the root the new leaf.
         if self.root.is_none() {
             let new_node = self.push_leaf(new_bounds, 1);

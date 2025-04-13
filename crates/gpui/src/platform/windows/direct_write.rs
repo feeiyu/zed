@@ -4,6 +4,7 @@ use ::util::ResultExt;
 use anyhow::{Result, anyhow};
 use collections::HashMap;
 use itertools::Itertools;
+use metrics::MetricsRecorder;
 use parking_lot::{RwLock, RwLockUpgradableReadGuard};
 use smallvec::SmallVec;
 use windows::{
@@ -654,6 +655,7 @@ impl DirectWriteState {
     }
 
     fn raster_bounds(&self, params: &RenderGlyphParams) -> Result<Bounds<DevicePixels>> {
+        let _r = MetricsRecorder::new(6);
         let render_target = &self.components.render_context.dc_target;
         unsafe {
             render_target.SetUnitMode(D2D1_UNIT_MODE_DIPS);
@@ -674,6 +676,7 @@ impl DirectWriteState {
             bidiLevel: 0,
         };
         let bounds = unsafe {
+            let _r = MetricsRecorder::new(7);
             render_target.GetGlyphRunWorldBounds(
                 Vector2 { X: 0.0, Y: 0.0 },
                 &glyph_run,
